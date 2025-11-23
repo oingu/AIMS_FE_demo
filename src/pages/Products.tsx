@@ -4,7 +4,6 @@ import { Filter } from 'lucide-react';
 import { Product, PriceRange } from '../types';
 import { mockProducts, searchProducts, filterProductsByPrice } from '../data/mockProducts';
 import { ProductCard } from '../components/ProductCard';
-import { getPriceRangeLabel } from '../utils/helpers';
 
 const priceRanges: PriceRange[] = [
   { min: 0, max: 100000, label: 'Dưới 100.000đ' },
