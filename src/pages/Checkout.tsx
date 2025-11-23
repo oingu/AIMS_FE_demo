@@ -11,6 +11,7 @@ import {
   isValidPhoneNumber,
 } from '../utils/helpers';
 import { DeliveryInfo, PaymentMethod } from '../types';
+import { VietQRCode } from '../components/VietQRCode';
 
 type CheckoutStep = 'delivery' | 'payment' | 'confirm';
 
@@ -349,20 +350,11 @@ export const Checkout: React.FC = () => {
 
               {/* Payment Demo UI */}
               {paymentMethod === 'qrcode' ? (
-                <div className="bg-gray-50 p-6 rounded-lg text-center">
-                  <div className="w-64 h-64 bg-white mx-auto mb-4 flex items-center justify-center border-2 border-gray-300 rounded-lg">
-                    <div className="text-center">
-                      <QrCode className="w-32 h-32 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm text-gray-500">Mã QR thanh toán</p>
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    Quét mã QR bằng ứng dụng ngân hàng của bạn
-                  </p>
-                  <p className="text-lg font-semibold text-gray-900 mt-2">
-                    Số tiền: {formatCurrency(grandTotal)}
-                  </p>
-                </div>
+                <VietQRCode
+                  amount={grandTotal}
+                  orderInfo={`AIMS ${selectedItems.length} san pham`}
+                  accountName="AIMS MEDIA STORE"
+                />
               ) : (
                 <div className="bg-gray-50 p-6 rounded-lg">
                   <div className="space-y-4">
