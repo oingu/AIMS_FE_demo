@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Edit, Trash2, Search, Filter, Package } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Package } from 'lucide-react';
 import { Product } from '../../types';
 import { mockProducts } from '../../data/mockProducts';
 import { formatCurrency, getProductCategoryLabel } from '../../utils/helpers';
@@ -46,31 +46,96 @@ export const ProductManagement: React.FC = () => {
     setSelectedProducts(newSelected);
   };
 
+  const handleDeleteSingle = (productId: string) => {
+    const product = products.find((p) => p.id === productId);
+    if (!product) return;
+
+    // Confirm dialog
+    const confirmMessage = product.stock > 0
+      ? `Sản phẩm "${product.title}" còn ${product.stock} trong kho.\n\nKhông thể xóa! Sản phẩm sẽ được chuyển sang trạng thái "Ngừng bán".\n\nBạn có muốn tiếp tục?`
+      : `Bạn có chắc chắn muốn xóa sản phẩm "${product.title}"?\n\nHành động này không thể hoàn tác!`;
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    if (product.stock > 0) {
+      // Deactivate if stock > 0
+      setProducts(
+        products.map((p) =>
+          p.id === productId ? { ...p, status: 'deactivated' as const } : p
+        )
+      );
+      alert(`Sản phẩm "${product.title}" đã được chuyển sang trạng thái "Ngừng bán".`);
+    } else {
+      // Delete if stock = 0
+      setProducts(products.filter((p) => p.id !== productId));
+      alert(`Đã xóa sản phẩm "${product.title}" thành công!`);
+    }
+  };
+
   const handleDeleteSelected = () => {
+    if (selectedProducts.size === 0) {
+      alert('Vui lòng chọn ít nhất một sản phẩm để xóa');
+      return;
+    }
+
     if (selectedProducts.size > 10) {
       alert('Không thể xóa quá 10 sản phẩm cùng lúc');
       return;
     }
 
-    const cannotDelete = Array.from(selectedProducts).filter((id) => {
-      const product = products.find((p) => p.id === id);
-      return product && product.stock > 0;
-    });
+    // Count products with stock > 0 and stock = 0
+    const productsToProcess = Array.from(selectedProducts).map((id) => 
+      products.find((p) => p.id === id)
+    ).filter((p) => p !== undefined);
 
-    if (cannotDelete.length > 0) {
-      alert('Một số sản phẩm không thể xóa vì còn hàng trong kho. Chúng sẽ được chuyển sang trạng thái "deactivated".');
+    const withStock = productsToProcess.filter((p) => p!.stock > 0);
+    const withoutStock = productsToProcess.filter((p) => p!.stock === 0);
+
+    let message = `Bạn đã chọn ${selectedProducts.size} sản phẩm:\n\n`;
+    
+    if (withoutStock.length > 0) {
+      message += `✓ ${withoutStock.length} sản phẩm (hết hàng) sẽ bị XÓA VĨNH VIỄN\n`;
+    }
+    
+    if (withStock.length > 0) {
+      message += `⚠ ${withStock.length} sản phẩm (còn hàng) sẽ chuyển sang "Ngừng bán"\n`;
     }
 
-    // Simulate deletion/deactivation
-    setProducts(
-      products.map((p) =>
-        selectedProducts.has(p.id)
-          ? p.stock > 0
-            ? { ...p, status: 'deactivated' as const }
-            : p
-          : p
-      )
-    );
+    message += '\nBạn có muốn tiếp tục?';
+
+    if (!window.confirm(message)) {
+      return;
+    }
+
+    // Process: Deactivate products with stock, delete products without stock
+    const updatedProducts = products
+      .filter((p) => {
+        // Remove products with stock = 0 that are selected
+        if (selectedProducts.has(p.id) && p.stock === 0) {
+          return false;
+        }
+        return true;
+      })
+      .map((p) => {
+        // Deactivate products with stock > 0 that are selected
+        if (selectedProducts.has(p.id) && p.stock > 0) {
+          return { ...p, status: 'deactivated' as const };
+        }
+        return p;
+      });
+
+    setProducts(updatedProducts);
+    
+    // Show summary
+    const deletedCount = withoutStock.length;
+    const deactivatedCount = withStock.length;
+    let resultMessage = 'Hoàn tất:\n';
+    if (deletedCount > 0) resultMessage += `✓ Đã xóa ${deletedCount} sản phẩm\n`;
+    if (deactivatedCount > 0) resultMessage += `✓ Đã ngừng bán ${deactivatedCount} sản phẩm`;
+    
+    alert(resultMessage);
     setSelectedProducts(new Set());
   };
 
@@ -241,10 +306,15 @@ export const ProductManagement: React.FC = () => {
                         <Link
                           to={`/admin/products/edit/${product.id}`}
                           className="text-primary-600 hover:text-primary-700"
+                          title="Chỉnh sửa"
                         >
                           <Edit className="w-5 h-5" />
                         </Link>
-                        <button className="text-red-600 hover:text-red-700">
+                        <button 
+                          onClick={() => handleDeleteSingle(product.id)}
+                          className="text-red-600 hover:text-red-700"
+                          title={product.stock > 0 ? 'Ngừng bán' : 'Xóa sản phẩm'}
+                        >
                           <Trash2 className="w-5 h-5" />
                         </button>
                       </div>
