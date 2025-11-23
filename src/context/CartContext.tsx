@@ -6,8 +6,12 @@ interface CartContextType {
   addToCart: (product: Product, quantity: number) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
+  toggleItemSelection: (productId: string) => void;
+  selectAllItems: (selected: boolean) => void;
   clearCart: () => void;
   getCartItemsCount: () => number;
+  getSelectedItems: () => CartItem[];
+  getSelectedTotal: () => number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -59,7 +63,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
             : item
         );
       } else {
-        newItems = [...prevCart.items, { product, quantity }];
+        newItems = [...prevCart.items, { product, quantity, selected: true }];
       }
 
       return {
@@ -98,12 +102,51 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     });
   };
 
+  const toggleItemSelection = (productId: string) => {
+    setCart((prevCart) => {
+      const newItems = prevCart.items.map((item) =>
+        item.product.id === productId
+          ? { ...item, selected: !item.selected }
+          : item
+      );
+      return {
+        items: newItems,
+        totalPrice: calculateTotalPrice(newItems),
+      };
+    });
+  };
+
+  const selectAllItems = (selected: boolean) => {
+    setCart((prevCart) => {
+      const newItems = prevCart.items.map((item) => ({
+        ...item,
+        selected,
+      }));
+      return {
+        items: newItems,
+        totalPrice: calculateTotalPrice(newItems),
+      };
+    });
+  };
+
   const clearCart = () => {
     setCart({ items: [], totalPrice: 0 });
   };
 
   const getCartItemsCount = (): number => {
     return cart.items.reduce((total, item) => total + item.quantity, 0);
+  };
+
+  const getSelectedItems = (): CartItem[] => {
+    return cart.items.filter((item) => item.selected);
+  };
+
+  const getSelectedTotal = (): number => {
+    return cart.items
+      .filter((item) => item.selected)
+      .reduce((total, item) => {
+        return total + item.product.currentPrice * item.quantity;
+      }, 0);
   };
 
   return (
@@ -113,8 +156,12 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         addToCart,
         removeFromCart,
         updateQuantity,
+        toggleItemSelection,
+        selectAllItems,
         clearCart,
         getCartItemsCount,
+        getSelectedItems,
+        getSelectedTotal,
       }}
     >
       {children}

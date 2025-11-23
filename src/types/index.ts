@@ -83,6 +83,7 @@ export type Product = Book | Newspaper | CD | DVD;
 export interface CartItem {
   product: Product;
   quantity: number;
+  selected: boolean; // For checkout selection
 }
 
 export interface Cart {

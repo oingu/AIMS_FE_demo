@@ -15,7 +15,7 @@ import { DeliveryInfo, PaymentMethod } from '../types';
 type CheckoutStep = 'delivery' | 'payment' | 'confirm';
 
 export const Checkout: React.FC = () => {
-  const { cart, clearCart } = useCart();
+  const { cart, getSelectedItems, getSelectedTotal, removeFromCart } = useCart();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<CheckoutStep>('delivery');
   const [deliveryInfo, setDeliveryInfo] = useState<DeliveryInfo>({
@@ -31,28 +31,31 @@ export const Checkout: React.FC = () => {
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [orderConfirmed, setOrderConfirmed] = useState(false);
 
-  // Redirect if cart is empty
+  const selectedItems = getSelectedItems();
+  const selectedTotal = getSelectedTotal();
+
+  // Redirect if no selected items
   useEffect(() => {
-    if (cart.items.length === 0 && !orderConfirmed) {
+    if (selectedItems.length === 0 && !orderConfirmed) {
       navigate('/cart');
     }
-  }, [cart.items, navigate, orderConfirmed]);
+  }, [selectedItems, navigate, orderConfirmed]);
 
   // Calculate delivery fee when city or cart changes
   useEffect(() => {
-    if (deliveryInfo.city && cart.items.length > 0) {
-      const totalWeight = cart.items.reduce(
+    if (deliveryInfo.city && selectedItems.length > 0) {
+      const totalWeight = selectedItems.reduce(
         (sum, item) => sum + item.product.weight * item.quantity,
         0
       );
       const fee = calculateDeliveryFee({
         totalWeight,
         city: deliveryInfo.city,
-        orderValue: cart.totalPrice,
+        orderValue: selectedTotal,
       });
       setDeliveryFee(fee);
     }
-  }, [deliveryInfo.city, cart]);
+  }, [deliveryInfo.city, selectedItems, selectedTotal]);
 
   const validateDeliveryInfo = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -99,14 +102,17 @@ export const Checkout: React.FC = () => {
 
   const handleConfirmOrder = () => {
     setOrderConfirmed(true);
-    clearCart();
+    // Remove only selected items from cart
+    selectedItems.forEach(item => {
+      removeFromCart(item.product.id);
+    });
     // Show success message and redirect
     setTimeout(() => {
       navigate('/order-success');
     }, 1500);
   };
 
-  const totalWithVAT = calculateTotalWithVAT(cart.totalPrice);
+  const totalWithVAT = calculateTotalWithVAT(selectedTotal);
   const grandTotal = totalWithVAT + deliveryFee;
 
   return (
@@ -472,11 +478,13 @@ export const Checkout: React.FC = () => {
         {/* Order Summary Sidebar */}
         <div className="lg:col-span-1">
           <div className="card sticky top-20">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Đơn hàng</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">
+              Đơn hàng ({selectedItems.length} sản phẩm)
+            </h3>
 
             {/* Cart Items */}
             <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
-              {cart.items.map((item) => (
+              {selectedItems.map((item) => (
                 <div key={item.product.id} className="flex space-x-3">
                   <img
                     src={item.product.imageUrl || 'https://via.placeholder.com/60'}
@@ -500,11 +508,11 @@ export const Checkout: React.FC = () => {
             <div className="border-t border-gray-200 pt-4 space-y-2 text-sm">
               <div className="flex justify-between text-gray-700">
                 <span>Tạm tính:</span>
-                <span>{formatCurrency(cart.totalPrice)}</span>
+                <span>{formatCurrency(selectedTotal)}</span>
               </div>
               <div className="flex justify-between text-gray-700">
                 <span>VAT (10%):</span>
-                <span>{formatCurrency(calculateVAT(cart.totalPrice))}</span>
+                <span>{formatCurrency(calculateVAT(selectedTotal))}</span>
               </div>
               <div className="flex justify-between text-gray-700">
                 <span>Phí vận chuyển:</span>

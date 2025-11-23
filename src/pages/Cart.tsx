@@ -5,7 +5,15 @@ import { useCart } from '../context/CartContext';
 import { formatCurrency, calculateVAT, calculateTotalWithVAT } from '../utils/helpers';
 
 export const Cart: React.FC = () => {
-  const { cart, removeFromCart, updateQuantity } = useCart();
+  const { 
+    cart, 
+    removeFromCart, 
+    updateQuantity, 
+    toggleItemSelection, 
+    selectAllItems,
+    getSelectedItems,
+    getSelectedTotal
+  } = useCart();
   const navigate = useNavigate();
 
   if (cart.items.length === 0) {
@@ -27,8 +35,13 @@ export const Cart: React.FC = () => {
     );
   }
 
-  // Check for stock availability
-  const hasStockIssue = cart.items.some((item) => item.quantity > item.product.stock);
+  const selectedItems = getSelectedItems();
+  const selectedTotal = getSelectedTotal();
+  const allSelected = cart.items.length > 0 && cart.items.every(item => item.selected);
+  
+  // Check for stock availability on selected items
+  const hasStockIssue = selectedItems.some((item) => item.quantity > item.product.stock);
+  const hasNoSelection = selectedItems.length === 0;
 
   return (
     <div className="container-custom py-8">
@@ -37,6 +50,21 @@ export const Cart: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Cart Items */}
         <div className="lg:col-span-2 space-y-4">
+          {/* Select All */}
+          <div className="card bg-gray-50">
+            <label className="flex items-center space-x-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={(e) => selectAllItems(e.target.checked)}
+                className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
+              />
+              <span className="font-medium text-gray-900">
+                Chọn tất cả ({cart.items.length} sản phẩm)
+              </span>
+            </label>
+          </div>
+
           {cart.items.map((item) => {
             const stockIssue = item.quantity > item.product.stock;
             const available = item.product.stock;
@@ -44,9 +72,21 @@ export const Cart: React.FC = () => {
             return (
               <div
                 key={item.product.id}
-                className={`card ${stockIssue ? 'border-2 border-red-300' : ''}`}
+                className={`card ${stockIssue && item.selected ? 'border-2 border-red-300' : ''} ${
+                  item.selected ? 'ring-2 ring-primary-200' : ''
+                }`}
               >
                 <div className="flex flex-col sm:flex-row gap-4">
+                  {/* Checkbox */}
+                  <div className="flex items-start pt-2">
+                    <input
+                      type="checkbox"
+                      checked={item.selected}
+                      onChange={() => toggleItemSelection(item.product.id)}
+                      className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500 cursor-pointer"
+                    />
+                  </div>
+
                   {/* Product Image */}
                   <Link
                     to={`/product/${item.product.id}`}
@@ -148,20 +188,29 @@ export const Cart: React.FC = () => {
           <div className="card sticky top-20">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Tổng quan đơn hàng</h2>
 
+            <div className="mb-3 p-3 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <span className="font-semibold">{selectedItems.length}</span> sản phẩm được chọn 
+                {cart.items.length > selectedItems.length && (
+                  <span className="text-blue-600"> / {cart.items.length} sản phẩm</span>
+                )}
+              </p>
+            </div>
+
             <div className="space-y-3 mb-4">
               <div className="flex justify-between text-gray-700">
                 <span>Tạm tính:</span>
-                <span>{formatCurrency(cart.totalPrice)}</span>
+                <span>{formatCurrency(selectedTotal)}</span>
               </div>
               <div className="flex justify-between text-gray-700">
                 <span>VAT (10%):</span>
-                <span>{formatCurrency(calculateVAT(cart.totalPrice))}</span>
+                <span>{formatCurrency(calculateVAT(selectedTotal))}</span>
               </div>
               <div className="border-t border-gray-200 pt-3">
                 <div className="flex justify-between text-lg font-bold text-gray-900">
                   <span>Tổng cộng:</span>
                   <span className="text-primary-600">
-                    {formatCurrency(calculateTotalWithVAT(cart.totalPrice))}
+                    {formatCurrency(calculateTotalWithVAT(selectedTotal))}
                   </span>
                 </div>
               </div>
@@ -170,6 +219,14 @@ export const Cart: React.FC = () => {
             <p className="text-sm text-gray-500 mb-4">
               * Phí vận chuyển sẽ được tính ở bước tiếp theo
             </p>
+
+            {hasNoSelection && (
+              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-700 font-medium">
+                  Vui lòng chọn ít nhất một sản phẩm để thanh toán
+                </p>
+              </div>
+            )}
 
             {hasStockIssue && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -181,10 +238,10 @@ export const Cart: React.FC = () => {
 
             <button
               onClick={() => navigate('/checkout')}
-              disabled={hasStockIssue}
+              disabled={hasStockIssue || hasNoSelection}
               className="w-full btn btn-primary text-lg py-3 mb-3"
             >
-              Tiến hành thanh toán
+              Tiến hành thanh toán ({selectedItems.length})
             </button>
 
             <Link
