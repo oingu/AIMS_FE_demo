@@ -14,6 +14,7 @@ import { OrderSuccess } from './pages/OrderSuccess';
 import { ProductManagement } from './pages/admin/ProductManagement';
 import { OrderManagement } from './pages/admin/OrderManagement';
 import { EditProduct } from './pages/admin/EditProduct';
+import { AddProduct } from './pages/admin/AddProduct';
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
 
                 {/* Admin Routes */}
                 <Route path="/admin/products" element={<ProductManagement />} />
+                <Route path="/admin/products/add" element={<AddProduct />} />
                 <Route path="/admin/products/edit/:id" element={<EditProduct />} />
                 <Route path="/admin/orders" element={<OrderManagement />} />
 
