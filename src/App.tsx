@@ -13,6 +13,7 @@ import { Login } from './pages/Login';
 import { OrderSuccess } from './pages/OrderSuccess';
 import { ProductManagement } from './pages/admin/ProductManagement';
 import { OrderManagement } from './pages/admin/OrderManagement';
+import { EditProduct } from './pages/admin/EditProduct';
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
 
                 {/* Admin Routes */}
                 <Route path="/admin/products" element={<ProductManagement />} />
+                <Route path="/admin/products/edit/:id" element={<EditProduct />} />
                 <Route path="/admin/orders" element={<OrderManagement />} />
 
                 {/* Redirect unknown routes to home */}
