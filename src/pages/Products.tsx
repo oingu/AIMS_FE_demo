@@ -18,7 +18,7 @@ export const Products: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
   const [selectedPriceRange, setSelectedPriceRange] = useState<PriceRange | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
@@ -33,10 +33,10 @@ export const Products: React.FC = () => {
       results = searchProducts(searchQuery);
     }
 
-    // Filter by category
+    // Filter by category from URL
     if (categoryQuery) {
       results = results.filter((p) => p.category === categoryQuery);
-      setSelectedCategory(categoryQuery);
+      setSelectedCategories(new Set([categoryQuery]));
     }
 
     setProducts(results);
@@ -46,9 +46,9 @@ export const Products: React.FC = () => {
   useEffect(() => {
     let results = [...products];
 
-    // Filter by category
-    if (selectedCategory) {
-      results = results.filter((p) => p.category === selectedCategory);
+    // Filter by multiple categories
+    if (selectedCategories.size > 0) {
+      results = results.filter((p) => selectedCategories.has(p.category));
     }
 
     // Filter by price range
@@ -61,10 +61,16 @@ export const Products: React.FC = () => {
     }
 
     setFilteredProducts(results);
-  }, [products, selectedCategory, selectedPriceRange]);
+  }, [products, selectedCategories, selectedPriceRange]);
 
   const handleCategoryChange = (category: string) => {
-    setSelectedCategory(category === selectedCategory ? '' : category);
+    const newCategories = new Set(selectedCategories);
+    if (newCategories.has(category)) {
+      newCategories.delete(category);
+    } else {
+      newCategories.add(category);
+    }
+    setSelectedCategories(newCategories);
   };
 
   const handlePriceRangeChange = (range: PriceRange) => {
@@ -74,7 +80,7 @@ export const Products: React.FC = () => {
   };
 
   const clearFilters = () => {
-    setSelectedCategory('');
+    setSelectedCategories(new Set());
     setSelectedPriceRange(null);
   };
 
@@ -86,7 +92,7 @@ export const Products: React.FC = () => {
           <div className="card sticky top-20">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-gray-900">Bộ lọc</h2>
-              {(selectedCategory || selectedPriceRange) && (
+              {(selectedCategories.size > 0 || selectedPriceRange) && (
                 <button
                   onClick={clearFilters}
                   className="text-sm text-primary-600 hover:text-primary-700"
@@ -98,13 +104,20 @@ export const Products: React.FC = () => {
 
             {/* Category Filter */}
             <div className="mb-6">
-              <h3 className="font-semibold text-gray-900 mb-3">Danh mục</h3>
+              <h3 className="font-semibold text-gray-900 mb-3">
+                Danh mục
+                {selectedCategories.size > 0 && (
+                  <span className="ml-2 text-sm text-primary-600">
+                    ({selectedCategories.size} đã chọn)
+                  </span>
+                )}
+              </h3>
               <div className="space-y-2">
                 {['book', 'newspaper', 'cd', 'dvd'].map((category) => (
                   <label key={category} className="flex items-center space-x-2 cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={selectedCategory === category}
+                      checked={selectedCategories.has(category)}
                       onChange={() => handleCategoryChange(category)}
                       className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
                     />
@@ -160,7 +173,7 @@ export const Products: React.FC = () => {
             <div className="lg:hidden card mb-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold text-gray-900">Bộ lọc</h2>
-                {(selectedCategory || selectedPriceRange) && (
+                {(selectedCategories.size > 0 || selectedPriceRange) && (
                   <button
                     onClick={clearFilters}
                     className="text-sm text-primary-600 hover:text-primary-700"
@@ -172,13 +185,20 @@ export const Products: React.FC = () => {
 
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Danh mục</h3>
+                  <h3 className="font-semibold text-gray-900 mb-2">
+                    Danh mục
+                    {selectedCategories.size > 0 && (
+                      <span className="ml-2 text-sm text-primary-600">
+                        ({selectedCategories.size} đã chọn)
+                      </span>
+                    )}
+                  </h3>
                   <div className="space-y-2">
                     {['book', 'newspaper', 'cd', 'dvd'].map((category) => (
                       <label key={category} className="flex items-center space-x-2">
                         <input
                           type="checkbox"
-                          checked={selectedCategory === category}
+                          checked={selectedCategories.has(category)}
                           onChange={() => handleCategoryChange(category)}
                           className="w-4 h-4 text-primary-600 rounded"
                         />
